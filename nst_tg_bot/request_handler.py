@@ -5,6 +5,7 @@ import sqlite3
 from sqlite3 import Error as DBError
 from threading import Timer
 from nst_tg_bot.file_manager import FileManager
+from nst_tg_bot.rwlock import RWLock
 
 
 class InputType(Enum):
@@ -17,9 +18,10 @@ class RequestHandler():
 	def __init__(self,
 		         file_manager: FileManager,
 		         path_to_db: str,
-		         wait_time: int):
+		         waiting_time: int):
 		self.__file_manager = file_manager
 		self.__path_to_db = path_to_db + "/queries.sqlite"
+		self.__rw_lock = RWLock()
 
 		if not os.path.exists(self.__path_to_db):
 			try:
@@ -34,11 +36,35 @@ class RequestHandler():
 				print(f"DB error occured: {e}")
 				quit()
 
-		# self.__wait_time = wait_time
-		# self.__timer = Timer(self.__clearing_time, self.__clear_cache)
-		# self.__timer.start()
+		self.__waiting_time = waiting_time
+		self.__timer = Timer(self.__waiting_time, self.__remove_old)
+		self.__timer.start()
+
+	def __remove_old(self):
+		self.__rw_lock.writer_acquire()
+
+		try:
+			connection = sqlite3.connect(self.__path_to_db)
+
+			cursor = connection.cursor()
+			cursor.execute(Queries.DELETE_MARKED)
+			connection.commit()
+
+			cursor = connection.cursor()
+			cursor.execute(Queries.MARK)
+			connection.commit()
+
+			connection.close()
+		except DBError as e:
+			print(f"DB error occured: {e}")
+
+		self.__timer = Timer(self.__waiting_time, self.__remove_old)
+		self.__timer.start()
+
+		self.__rw_lock.writer_release()
 
 	async def set_input(self, in_type: InputType, file: File, chat_id: int):
+		self.__rw_lock.reader_acquire()
 		file_path = await self.__file_manager.get_local_path(file)
 
 		try:
@@ -54,6 +80,8 @@ class RequestHandler():
 			connection.close()
 		except DBError as e:
 			print(f"DB error occured: {e}")
+
+		self.__rw_lock.reader_release()
 
 	def __is_new_query(self, chat_id: int, connection):
 		cursor = connection.cursor()
@@ -77,7 +105,8 @@ class RequestHandler():
 		connection.commit()
 
 	def execute_query(self, chat_id: int):
-		pass
+		self.__rw_lock.reader_acquire()
+		self.__rw_lock.reader_release()
 
 
 class Queries():
