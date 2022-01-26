@@ -104,12 +104,17 @@ class Model():
 
 		patches_s_norm = F.normalize(patches_s, dim=0)
 		correlations = F.conv2d(features_c, patches_s_norm)
+		del patches_s_norm
 
 		phi = torch.argmax(correlations, dim=1)
+		del correlations
 		matches = torch.moveaxis(F.one_hot(phi, num_classes=len(patches_s)), 3, 1).type(torch.float)
+		del phi
 
 		result = F.conv_transpose2d(matches, patches_s, stride=1)
 
+		del matches
+		del patches_s
 		conv = torch.tensor([
 		    [1., 1., 1.],
 		    [1., 1., 1.],
