@@ -5,6 +5,7 @@ import sqlite3
 from sqlite3 import Error as DBError
 from threading import Timer
 from nst_tg_bot.file_manager import FileManager
+from nst_tg_bot.model.model import Model
 from nst_tg_bot.rwlock import RWLock
 
 
@@ -20,6 +21,7 @@ class RequestHandler():
 		         path_to_db: str,
 		         waiting_time: int):
 		self.__file_manager = file_manager
+		self.__model = Model()
 		self.__path_to_db = path_to_db + "/queries.sqlite"
 		self.__rw_lock = RWLock()
 
@@ -106,7 +108,33 @@ class RequestHandler():
 
 	def execute_query(self, chat_id: int):
 		self.__rw_lock.reader_acquire()
+
+		try:
+			connection = sqlite3.connect(self.__path_to_db)
+
+			cursor = connection.cursor()
+			cursor.execute(Queries.GET_INPUT % chat_id)
+			content_path, style_path = cursor.fetchall()[0]
+
+			if content_path is None or style_path is None:
+				result = None
+			else:
+				cursor = connection.cursor()
+				cursor.execute(Queries.DELETE % chat_id)
+				connection.commit()
+
+				result = self.__model.transfer_style(content_path, style_path)
+				
+				self.__file_manager.release_file(content_path)
+				self.__file_manager.release_file(style_path)
+
+			connection.close()
+		except DBError as e:
+			print(f"DB error occured: {e}")
+
 		self.__rw_lock.reader_release()
+
+		return result
 
 
 class Queries():

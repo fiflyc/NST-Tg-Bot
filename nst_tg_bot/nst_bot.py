@@ -36,15 +36,24 @@ async def on_info_cmd(message: Message):
 async def on_links_cmd(message: Message):
 	await message.reply(Strings.LINKS_MESSAGE)
 
-async def save_content(file: File, chat_id: int):
+async def save_content_and_execute(file: File, message: Message):
+	chat_id = message.chat['id']
 	await handler.set_input(InputType.CONTENT, file, chat_id)
+	result = handler.execute_query(chat_id)
+
+	if result is None:
+		await message.reply(Strings.SEND_STYLE)
+	else:
+		await bot.send_photo(photo=open(result.name, 'rb'),
+		                     chat_id=chat_id,
+		                     reply_to_message_id=message.message_id)
+		result.close()
 
 @dp.message_handler(filters.Command(['content'], ignore_caption=False),
 	                content_types=mctp.PHOTO)
 async def on_content_image(message: Message):
 	file = await bot.get_file(message.photo[-1]['file_id'])
-	chat_id = message.chat['id']
-	await save_content(file)
+	await save_content_and_execute(file, message)
 
 @dp.message_handler(filters.Command(['content']),
 				    content_types=mctp.TEXT)
@@ -55,18 +64,26 @@ async def on_forwarded_content_image(message: Message):
 		await message.reply(Strings.NO_CONTENT_IMAGE)
 	else:
 		file = await bot.get_file(message.reply_to_message.photo[-1]['file_id'])
-		chat_id = message.chat['id']
-		await save_content(file, chat_id)
+		await save_content_and_execute(file, message)
 
-async def save_style(file: File, chat_id: int):
+async def save_style_and_execute(file: File, message: Message):
+	chat_id = message.chat['id']
 	await handler.set_input(InputType.STYLE, file, chat_id)
+	result = handler.execute_query(chat_id)
+
+	if result is None:
+		await message.reply(Strings.SEND_CONTENT)
+	else:
+		await bot.send_photo(photo=open(result.name, 'rb'),
+		                     chat_id=chat_id,
+		                     reply_to_message_id=message.message_id)
+		result.close()
 
 @dp.message_handler(filters.Command(['style'], ignore_caption=False),
 	                content_types=mctp.PHOTO)
 async def on_style_image(message: Message):
 	file = await bot.get_file(message.photo[-1]['file_id'])
-	chat_id = message.chat['id']
-	await save_style(file)
+	await save_style_and_execute(file, message)
 
 @dp.message_handler(filters.Command(['style']),
 				    content_types=mctp.TEXT)
@@ -77,8 +94,7 @@ async def on_forwarded_style_image(message: Message):
 		await message.reply(Strings.NO_STYLE_IMAGE)
 	else:
 		file = await bot.get_file(message.reply_to_message.photo[-1]['file_id'])
-		chat_id = message.chat['id']
-		await save_style(file, chat_id)
+		await save_style_and_execute(file, message)
 
 
 if __name__ == '__main__':
