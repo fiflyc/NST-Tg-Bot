@@ -3,7 +3,7 @@ from aiogram.types import Message
 from aiogram.types.file import File
 from aiogram.types.message import ContentType as mctp
 from aiogram.dispatcher import filters
-from nst_tg_bot.text import Strings
+from nst_tg_bot.text import Text
 import nst_tg_bot.config as config
 from nst_tg_bot.file_manager import FileManager
 from nst_tg_bot.request_handler import RequestHandler, InputType
@@ -23,12 +23,12 @@ handler = RequestHandler(fmanager,
 @dp.message_handler(filters.Command(['start'], ignore_caption=False),
                     content_types=mctp.TEXT)
 async def on_start_cmd(message: Message):
-	await message.reply(Strings.START_MESSAGE)
+	await message.reply(Text.START_MESSAGE)
 
 @dp.message_handler(filters.Command(['help'], ignore_caption=False),
                     content_types=mctp.TEXT)
 async def on_help_cmd(message: Message):
-	await message.reply(Strings.HELP_MESSAGE)
+	await message.reply(Text.HELP_MESSAGE)
 
 @dp.message_handler(filters.Command(['info'], ignore_caption=False),
                     content_types=mctp.TEXT)
@@ -38,7 +38,7 @@ async def on_info_cmd(message: Message):
 @dp.message_handler(filters.Command(['links'], ignore_caption=False),
                     content_types=mctp.TEXT)
 async def on_links_cmd(message: Message):
-	await message.reply(Strings.LINKS_MESSAGE)
+	await message.reply(Text.LINKS_MESSAGE)
 
 async def save_content_and_execute(file: File, message: Message):
 	chat_id = message.chat['id']
@@ -46,7 +46,7 @@ async def save_content_and_execute(file: File, message: Message):
 	result = handler.execute_query(chat_id)
 
 	if result is None:
-		await message.reply(Strings.SEND_STYLE)
+		await message.reply(Text.SEND_STYLE)
 	else:
 		await bot.send_photo(photo=open(result.name, 'rb'),
 		                     chat_id=chat_id,
@@ -63,7 +63,7 @@ async def on_content_image(message: Message):
                     content_types=mctp.DOCUMENT)
 async def on_content_file(message: Message):
 	if 'image' not in message.document['mime_type']:
-		await message.reply(Strings.WRONG_FILE_FORMAT)
+		await message.reply(Text.WRONG_FILE_FORMAT)
 	else:
 		file = await bot.get_file(message.document['file_id'])
 		await save_content_and_execute(file, message)
@@ -72,13 +72,13 @@ async def on_content_file(message: Message):
                     content_types=mctp.TEXT)
 async def on_forwarded_content(message: Message):
 	if message.reply_to_message is None:
-		await message.reply(Strings.NO_CONTENT_IMAGE)
+		await message.reply(Text.NO_CONTENT_IMAGE)
 	elif not message.reply_to_message.photo and \
 	     not message.reply_to_message.document:
-		await message.reply(Strings.NO_CONTENT_IMAGE)
+		await message.reply(Text.NO_CONTENT_IMAGE)
 	elif not message.reply_to_message.photo:
 		if 'image' not in message.reply_to_message.document['mime_type']:
-			await message.reply(Strings.WRONG_FILE_FORMAT)
+			await message.reply(Text.WRONG_FILE_FORMAT)
 		else:
 			file = await bot.get_file(message.reply_to_message.document['file_id'])
 			await save_content_and_execute(file, message)
@@ -92,7 +92,7 @@ async def save_style_and_execute(file: File, message: Message):
 	result = handler.execute_query(chat_id)
 
 	if result is None:
-		await message.reply(Strings.SEND_CONTENT)
+		await message.reply(Text.SEND_CONTENT)
 	else:
 		await bot.send_photo(photo=open(result.name, 'rb'),
 		                     chat_id=chat_id,
@@ -109,7 +109,7 @@ async def on_style_image(message: Message):
                     content_types=mctp.DOCUMENT)
 async def on_style_file(message: Message):
 	if 'image' not in message.document['mime_type']:
-		await message.reply(Strings.WRONG_FILE_FORMAT)
+		await message.reply(Text.WRONG_FILE_FORMAT)
 	else:
 		file = await bot.get_file(message.document['file_id'])
 		await save_style_and_execute(file, message)
@@ -118,13 +118,13 @@ async def on_style_file(message: Message):
                     content_types=mctp.TEXT)
 async def on_forwarded_style_image(message: Message):
 	if message.reply_to_message is None:
-		await message.reply(Strings.NO_STYLE_IMAGE)
+		await message.reply(Text.NO_STYLE_IMAGE)
 	elif not message.reply_to_message.photo and \
 	     not message.reply_to_message.document:
-		await message.reply(Strings.NO_STYLE_IMAGE)
+		await message.reply(Text.NO_STYLE_IMAGE)
 	elif not message.reply_to_message.photo:
 		if 'image' not in message.reply_to_message.document['mime_type']:
-			await message.reply(Strings.WRONG_FILE_FORMAT)
+			await message.reply(Text.WRONG_FILE_FORMAT)
 		else:
 			file = await bot.get_file(message.reply_to_message.document['file_id'])
 			await save_style_and_execute(file, message)
