@@ -75,8 +75,16 @@ class RequestHandler():
 			if self.__is_new_query(chat_id, connection):
 				self.__create_entry(chat_id, connection)
 			if in_type is InputType.CONTENT:
+				content_path, _ = self.__get_input(chat_id, connection)
+				if content_path is not None:
+					self.__file_manager.release_file(content_path)
+
 				self.__set_content(chat_id, file_path, connection)
 			if in_type is InputType.STYLE:
+				_, style_path = self.__get_input(chat_id, connection)
+				if style_path is not None:
+					self.__file_manager.release_file(style_path)
+
 				self.__set_style(chat_id, file_path, connection)
 
 			connection.close()
@@ -96,6 +104,11 @@ class RequestHandler():
 		cursor.execute(Queries.CREATE_ENTRY % chat_id)
 		connection.commit()
 
+	def __get_input(self, chat_id: int, connection):
+		cursor = connection.cursor()
+		cursor.execute(Queries.GET_INPUT % chat_id)
+		return cursor.fetchall()[0]
+
 	def __set_content(self, chat_id: int, file_path: str, connection):
 		cursor = connection.cursor()
 		cursor.execute(Queries.SET_CONTENT % (file_path, chat_id))
@@ -112,9 +125,7 @@ class RequestHandler():
 		try:
 			connection = sqlite3.connect(self.__path_to_db)
 
-			cursor = connection.cursor()
-			cursor.execute(Queries.GET_INPUT % chat_id)
-			content_path, style_path = cursor.fetchall()[0]
+			content_path, style_path = self.__get_input(chat_id, connection)
 
 			if content_path is None or style_path is None:
 				result = None
