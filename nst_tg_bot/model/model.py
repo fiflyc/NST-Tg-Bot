@@ -134,7 +134,7 @@ class Model():
 		std_i  =  np.std(img)
 		mean_i = np.mean(img)
 
-		return (img - mean_i) / std_i * std_t + mean_t
+		return (img - mean_i) / std_i #* std_t + mean_t
 
 	def __save_image(self, img):
 		file = tempfile.NamedTemporaryFile(suffix='.png')
