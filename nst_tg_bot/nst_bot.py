@@ -134,4 +134,4 @@ async def on_forwarded_style_image(message: Message):
 
 
 if __name__ == '__main__':
-    executor.start_polling(dp)
+    executor.start_polling(dp, skip_updates=True)
