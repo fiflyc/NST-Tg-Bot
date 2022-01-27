@@ -1,12 +1,11 @@
 from enum import Enum
 import os
+import asyncio
 from aiogram.types.file import File
 import sqlite3
 from sqlite3 import Error as DBError
-from threading import Timer
 from nst_tg_bot.file_manager import FileManager
 from nst_tg_bot.model.model import Model
-from nst_tg_bot.rwlock import RWLock
 
 
 class InputType(Enum):
@@ -23,7 +22,6 @@ class RequestHandler():
 		self.__file_manager = file_manager
 		self.__model = Model()
 		self.__path_to_db = path_to_db + "/queries.sqlite"
-		self.__rw_lock = RWLock()
 
 		if not os.path.exists(self.__path_to_db):
 			try:
@@ -39,34 +37,29 @@ class RequestHandler():
 				quit()
 
 		self.__waiting_time = waiting_time
-		self.__timer = Timer(self.__waiting_time, self.__remove_old)
-		self.__timer.start()
 
-	def __remove_old(self):
-		self.__rw_lock.writer_acquire()
+	async def remove_old_task(self):
+		await asyncio.sleep(self.__waiting_time)
 
-		try:
-			connection = sqlite3.connect(self.__path_to_db)
+		while True:
+			try:
+				connection = sqlite3.connect(self.__path_to_db)
 
-			cursor = connection.cursor()
-			cursor.execute(Queries.DELETE_MARKED)
-			connection.commit()
+				cursor = connection.cursor()
+				cursor.execute(Queries.DELETE_MARKED)
+				connection.commit()
 
-			cursor = connection.cursor()
-			cursor.execute(Queries.MARK)
-			connection.commit()
+				cursor = connection.cursor()
+				cursor.execute(Queries.MARK)
+				connection.commit()
 
-			connection.close()
-		except DBError as e:
-			print(f"DB error occured: {e}")
+				connection.close()
+			except DBError as e:
+				print(f"DB error occured: {e}")
 
-		self.__timer = Timer(self.__waiting_time, self.__remove_old)
-		self.__timer.start()
-
-		self.__rw_lock.writer_release()
+			await asyncio.sleep(self.__waiting_time)
 
 	async def set_input(self, in_type: InputType, file: File, chat_id: int):
-		self.__rw_lock.reader_acquire()
 		file_path = await self.__file_manager.get_local_path(file)
 
 		try:
@@ -90,8 +83,6 @@ class RequestHandler():
 			connection.close()
 		except DBError as e:
 			print(f"DB error occured: {e}")
-
-		self.__rw_lock.reader_release()
 
 	def __is_new_query(self, chat_id: int, connection):
 		cursor = connection.cursor()
@@ -119,9 +110,7 @@ class RequestHandler():
 		cursor.execute(Queries.SET_STYLE % (file_path, chat_id))
 		connection.commit()
 
-	def execute_query(self, chat_id: int):
-		self.__rw_lock.reader_acquire()
-
+	async def execute_query(self, chat_id: int):
 		try:
 			connection = sqlite3.connect(self.__path_to_db)
 
@@ -134,7 +123,7 @@ class RequestHandler():
 				cursor.execute(Queries.DELETE % chat_id)
 				connection.commit()
 
-				result = self.__model.transfer_style(content_path, style_path)
+				result = await self.__model.transfer_style(content_path, style_path)
 				
 				self.__file_manager.release_file(content_path)
 				self.__file_manager.release_file(style_path)
@@ -142,8 +131,6 @@ class RequestHandler():
 			connection.close()
 		except DBError as e:
 			print(f"DB error occured: {e}")
-
-		self.__rw_lock.reader_release()
 
 		return result
 

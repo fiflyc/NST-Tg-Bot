@@ -1,3 +1,4 @@
+import asyncio
 from aiogram import Bot, Dispatcher, executor
 from aiogram.types import Message
 from aiogram.types.file import File
@@ -43,7 +44,7 @@ async def on_links_cmd(message: Message):
 async def save_content_and_execute(file: File, message: Message):
 	chat_id = message.chat['id']
 	await handler.set_input(InputType.CONTENT, file, chat_id)
-	result = handler.execute_query(chat_id)
+	result = await handler.execute_query(chat_id)
 
 	if result is None:
 		await message.reply(Text.SEND_STYLE)
@@ -89,7 +90,7 @@ async def on_forwarded_content(message: Message):
 async def save_style_and_execute(file: File, message: Message):
 	chat_id = message.chat['id']
 	await handler.set_input(InputType.STYLE, file, chat_id)
-	result = handler.execute_query(chat_id)
+	result = await handler.execute_query(chat_id)
 
 	if result is None:
 		await message.reply(Text.SEND_CONTENT)
@@ -132,6 +133,10 @@ async def on_forwarded_style_image(message: Message):
 		file = await bot.get_file(message.reply_to_message.photo[-1]['file_id'])
 		await save_style_and_execute(file, message)
 
+async def on_startup(arg):
+	asyncio.create_task(fmanager.clear_cache_task())
+	asyncio.create_task(handler.remove_old_task())
+
 
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+    executor.start_polling(dp, on_startup=on_startup, skip_updates=True)

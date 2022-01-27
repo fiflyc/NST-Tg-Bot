@@ -27,26 +27,26 @@ class Model():
 		self.__MIN_IMG_SIZE = 228
 		self.__MAX_IMG_SIZE = 512
 
-	def transfer_style(self, content_path, style_path):
+	async def transfer_style(self, content_path, style_path):
 		with Image.open(content_path) as content_img, \
 			Image.open(style_path) as style_img:
-			content_resized = self.__resize_if_small(content_img)
-			style_resized   = self.__resize_if_small(style_img)
-			content_resized = self.__resize_if_large(content_resized)
-			style_resized   = self.__resize_if_large(style_resized)
+			content_resized = await self.__resize_if_small(content_img)
+			style_resized   = await self.__resize_if_small(style_img)
+			content_resized = await self.__resize_if_large(content_resized)
+			style_resized   = await self.__resize_if_large(style_resized)
 
 			content = self.__transforms(np.array(content_resized)).repeat(1, 1, 1, 1)
 			style   = self.__transforms(np.array(style_resized)).repeat(1, 1, 1, 1)
 
 			with torch.no_grad():
-				features_c = self.__vgg19(content)
-				features_s = self.__vgg19(style)
-				features_n = self.__style_swap(features_c, features_s[0])
+				features_c = await self.__get_features(content)
+				features_s = await self.__get_features(style)
+				features_n = await self.__style_swap(features_c, features_s[0])
 
-				result_t = self.__denorm(self.__inv_net(features_n)[0])
+				result_t = await self.__denorm(self.__restore_images(features_n)[0])
 
 			result_np = np.rollaxis(result_t.numpy(), 0, 3)
-			result_np = self.__correct_gamma(result_np, np.array(style_img) / 255)
+			result_np = await self.__correct_gamma(result_np, np.array(style_img) / 255)
 			result_np = np.clip(result_np, 0, 1)
 			result = Image.fromarray(np.uint8(result_np * 255))
 
@@ -54,10 +54,9 @@ class Model():
 			if Hc < self.__MIN_IMG_SIZE or Wc < self.__MIN_IMG_SIZE:
 				result = result.resize((Wc, Hc))
 
-			return self.__save_image(result)
+			return await self.__save_image(result)
 
-
-	def __resize_if_small(self, img):
+	async def __resize_if_small(self, img):
 		W, H = img.size
 		if H < self.__MIN_IMG_SIZE:
 			scale = self.__MIN_IMG_SIZE / H
@@ -70,7 +69,7 @@ class Model():
 
 		return img
 
-	def __resize_if_large(self, img):
+	async def __resize_if_large(self, img):
 		W, H = img.size
 		if H > self.__MAX_IMG_SIZE:
 			scale = self.__MAX_IMG_SIZE / H
@@ -83,7 +82,13 @@ class Model():
 
 		return img
 
-	def __style_swap(self, features_c, features_s, patch_size=3):
+	async def __get_features(self, image):
+		return self.__vgg19(image)
+
+	async def __restore_images(self, fetures):
+		return self.__inv_net(fetures)
+
+	async def __style_swap(self, features_c, features_s, patch_size=3):
 		"""
 		Executes style swapping algorithm.
 		:param features_c: content images features with shape (B, C, H, W)
@@ -93,7 +98,25 @@ class Model():
 		"""
 
 		assert features_s.shape[0] == features_c.shape[1]
-		B, C, H, W = features_c.shape
+
+		patches_s = await self.__collect_style_patches(features_s, patch_size)
+
+		patches_s_norm = F.normalize(patches_s, dim=0)
+		correlations = F.conv2d(features_c, patches_s_norm)
+		del patches_s_norm
+
+		matches = await self.__find_matching_patches(correlations, len(patches_s))
+		del correlations
+
+		result = F.conv_transpose2d(matches, patches_s, stride=1)
+
+		del matches
+		del patches_s
+		overlaps = await self.__calculate_overlaps(features_c.shape)
+
+		return result / overlaps
+
+	async def __collect_style_patches(self, features_s, patch_size):
 		C, Hs, Ws  = features_s.shape
 		s = patch_size
 
@@ -102,32 +125,30 @@ class Model():
 	    	] for layer in features_s.detach().numpy()
 		])).moveaxis(1, 0)
 
-		patches_s_norm = F.normalize(patches_s, dim=0)
-		correlations = F.conv2d(features_c, patches_s_norm)
-		del patches_s_norm
+		return patches_s
 
+	async def __find_matching_patches(self, correlations, n_classes):
 		phi = torch.argmax(correlations, dim=1)
-		del correlations
-		matches = torch.moveaxis(F.one_hot(phi, num_classes=len(patches_s)), 3, 1).type(torch.float)
-		del phi
+		matches = torch.moveaxis(F.one_hot(phi, num_classes=n_classes), 3, 1).type(torch.float)
 
-		result = F.conv_transpose2d(matches, patches_s, stride=1)
+		return matches
 
-		del matches
-		del patches_s
+	async def __calculate_overlaps(self, size):
+		B, C, H, W = size
+
 		conv = torch.tensor([
 		    [1., 1., 1.],
 		    [1., 1., 1.],
 		    [1., 1., 1.]
 		]).repeat(C, 1, 1, 1)
-		overlap = F.conv2d(torch.ones(B, 1, H - 2, W - 2), conv, padding=2)
+		overlaps = F.conv2d(torch.ones(B, 1, H - 2, W - 2), conv, padding=2)
 
-		return result / overlap
+		return overlaps
 
 	def __denorm(self, x):
 		return torch.clamp(x * self.__img_std + self.__img_mean, 0, 1)
 
-	def __correct_gamma(self, img, target):
+	async def __correct_gamma(self, img, target):
 		std_t  =  np.std(target)
 		mean_t = np.mean(target)
 
@@ -136,7 +157,7 @@ class Model():
 
 		return (img - mean_i) / std_i #* std_t + mean_t
 
-	def __save_image(self, img):
+	async def __save_image(self, img):
 		file = tempfile.NamedTemporaryFile(suffix='.png')
 		img.save(file.name)
 

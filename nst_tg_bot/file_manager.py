@@ -1,10 +1,9 @@
 import os
+import asyncio
 from aiogram import Bot
 from aiogram.types.file import File
 import sqlite3
 from sqlite3 import Error as DBError
-from threading import Timer
-from nst_tg_bot.rwlock import RWLock
 
 
 class FileManager():
@@ -16,7 +15,6 @@ class FileManager():
 		self.__bot = bot
 		self.__path_to_db = path_to_db + '/files.sqlite'
 		self.__cache_dir = cache_dir
-		self.__rw_lock = RWLock()
 
 		if not os.path.exists(self.__path_to_db):
 			try:
@@ -32,30 +30,27 @@ class FileManager():
 				quit()
 
 		self.__clearing_time = clearing_time
-		self.__timer = Timer(self.__clearing_time, self.__clear_cache)
-		self.__timer.start()
 
-	def __clear_cache(self):
-		self.__rw_lock.writer_acquire()
-		unprotected = []
+	async def clear_cache_task(self):
+		await asyncio.sleep(self.__clearing_time)
 
-		try:
-			connection = sqlite3.connect(self.__path_to_db)
+		while True:
+			unprotected = []
 
-			unprotected = self.__get_unprotected(connection)
-			self.__delete_unprotected(connection)
+			try:
+				connection = sqlite3.connect(self.__path_to_db)
 
-			connection.close()
-		except DBError as e:
-			print(f"DB error occured: {e}")
+				unprotected = self.__get_unprotected(connection)
+				self.__delete_unprotected(connection)
 
-		for file in unprotected:
-			os.remove(file[0])
+				connection.close()
+			except DBError as e:
+				print(f"DB error occured: {e}")
 
-		self.__timer = Timer(self.__clearing_time, self.__clear_cache)
-		self.__timer.start()
+			for file in unprotected:
+				os.remove(file[0])
 
-		self.__rw_lock.writer_release()
+			await asyncio.sleep(self.__clearing_time)
 
 	def __get_unprotected(self, connection):
 		cursor = connection.cursor()
@@ -70,7 +65,6 @@ class FileManager():
 		connection.commit()		
 
 	async def get_local_path(self, file: File):
-		self.__rw_lock.reader_acquire()
 		local_path = None
 		# unique single file code:
 		file_id = file.file_unique_id
@@ -88,8 +82,6 @@ class FileManager():
 			connection.close()
 		except DBError as e:
 			print(f"DB error occured: {e}")
-
-		self.__rw_lock.reader_release()
 
 		return local_path
 
@@ -123,8 +115,6 @@ class FileManager():
 		connection.commit()	
 
 	def release_file(self, local_path: str):
-		self.__rw_lock.reader_acquire()
-
 		try:
 			connection = sqlite3.connect(self.__path_to_db)
 
@@ -135,8 +125,6 @@ class FileManager():
 			connection.close()
 		except DBError as e:
 			print(f"DB error occured: {e}")
-
-		self.__rw_lock.reader_release()
 
 
 class Queries():
