@@ -110,6 +110,23 @@ class RequestHandler():
 		cursor.execute(Queries.SET_STYLE % (file_path, chat_id))
 		connection.commit()
 
+	def ready_for_transfer(self, chat_id):
+		try:
+			connection = sqlite3.connect(self.__path_to_db)
+
+			content_path, style_path = self.__get_input(chat_id, connection)
+
+			if content_path is None or style_path is None:
+				result = False
+			else:
+				result = True
+
+			connection.close()
+		except DBError as e:
+			print(f"DB error occured: {e}")
+
+		return result
+
 	async def execute_query(self, chat_id: int):
 		try:
 			connection = sqlite3.connect(self.__path_to_db)

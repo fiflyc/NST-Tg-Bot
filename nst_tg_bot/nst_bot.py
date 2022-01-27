@@ -44,11 +44,12 @@ async def on_links_cmd(message: Message):
 async def save_content_and_execute(file: File, message: Message):
 	chat_id = message.chat['id']
 	await handler.set_input(InputType.CONTENT, file, chat_id)
-	result = await handler.execute_query(chat_id)
 
-	if result is None:
+	if not handler.ready_for_transfer(chat_id):
 		await message.reply(Text.SEND_STYLE)
 	else:
+		await message.reply(Text.QUERY_RECEIVED)
+		result = await handler.execute_query(chat_id)
 		await bot.send_photo(photo=open(result.name, 'rb'),
 		                     chat_id=chat_id,
 		                     reply_to_message_id=message.message_id)
@@ -90,11 +91,12 @@ async def on_forwarded_content(message: Message):
 async def save_style_and_execute(file: File, message: Message):
 	chat_id = message.chat['id']
 	await handler.set_input(InputType.STYLE, file, chat_id)
-	result = await handler.execute_query(chat_id)
-
-	if result is None:
-		await message.reply(Text.SEND_CONTENT)
+	
+	if not handler.ready_for_transfer(chat_id):
+		await message.reply(Text.SEND_STYLE)
 	else:
+		await message.reply(Text.QUERY_RECEIVED)
+		result = await handler.execute_query(chat_id)
 		await bot.send_photo(photo=open(result.name, 'rb'),
 		                     chat_id=chat_id,
 		                     reply_to_message_id=message.message_id)
