@@ -16,6 +16,7 @@ class Model():
 		self.__inv_net = InverseNet()
 		self.__inv_net.load_state_dict(torch.load('./nst_tg_bot/model/invnet_params.pt',
 		                                          map_location=torch.device('cpu')))
+		torch.backends.cudnn.deterministic=True
 
 		self.__img_std  = torch.tensor([0.485, 0.456, 0.406]).reshape(-1, 1, 1)
 		self.__img_mean = torch.tensor([0.229, 0.224, 0.225]).reshape(-1, 1, 1)
@@ -43,7 +44,8 @@ class Model():
 				features_s = await self.__get_features(style)
 				features_n = await self.__style_swap(features_c, features_s[0])
 
-				result_t = await self.__denorm(self.__restore_images(features_n)[0])
+				result_t = await self.__restore_images(features_n)
+				result_t = self.__denorm(result_t[0])
 
 			result_np = np.rollaxis(result_t.numpy(), 0, 3)
 			result_np = await self.__correct_gamma(result_np, np.array(style_img) / 255)
@@ -122,7 +124,7 @@ class Model():
 
 		patches_s = torch.tensor(np.array([[
 	        	layer[a:a+s, b:b+s] for a in range(Hs-s+1) for b in range(Ws-s+1)
-	    	] for layer in features_s.detach().numpy()
+	    	] for layer in features_s.numpy()
 		])).moveaxis(1, 0)
 
 		return patches_s
@@ -130,6 +132,7 @@ class Model():
 	async def __find_matching_patches(self, correlations, n_classes):
 		phi = torch.argmax(correlations, dim=1)
 		matches = torch.moveaxis(F.one_hot(phi, num_classes=n_classes), 3, 1).type(torch.float)
+		del phi
 
 		return matches
 
