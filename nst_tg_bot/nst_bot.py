@@ -29,7 +29,7 @@ async def on_start_cmd(message: Message):
 @dp.message_handler(filters.Command(['help'], ignore_caption=False),
                     content_types=mctp.TEXT)
 async def on_help_cmd(message: Message):
-	await message.reply(text.HELP_MESSAGE, parse_mode= 'Markdown')
+	await message.reply(text.HELP_MESSAGE, parse_mode='Markdown')
 
 @dp.message_handler(filters.Command(['info'], ignore_caption=False),
                     content_types=mctp.TEXT)
@@ -39,7 +39,7 @@ async def on_info_cmd(message: Message):
 @dp.message_handler(filters.Command(['links'], ignore_caption=False),
                     content_types=mctp.TEXT)
 async def on_links_cmd(message: Message):
-	await message.reply(text.LINKS_MESSAGE)
+	await message.reply(text.LINKS_MESSAGE, parse_mode='Markdown', disable_web_page_preview=True)
 
 async def save_content_and_execute(file: File, message: Message):
 	chat_id = message.chat['id']
