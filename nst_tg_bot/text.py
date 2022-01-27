@@ -21,7 +21,7 @@ Do the same thing with /style passing an artwotk which style you want to use.
 LINKS_MESSAGE = """
 *Links*
 
-[Article with algorithm](https://arxiv.org/abs/1612.04337)
+[Article with the algorithm](https://arxiv.org/abs/1612.04337)
 [Source code](https://github.com/fiflyc/NST-Tg-Bot)
 """
 
