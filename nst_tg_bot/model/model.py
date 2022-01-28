@@ -34,47 +34,47 @@ class Model():
 		with Image.open(content_path) as content_img, \
 		     Image.open(style_path) as style_img:
 
-			await asyncio.sleep(0.2)
+			await asyncio.sleep(0.01)
 			content_resized = self.__resize_if_small(content_img)
 			style_resized   = self.__resize_if_small(style_img)
 
-			await asyncio.sleep(0.2)
+			await asyncio.sleep(0.01)
 			content_resized = self.__resize_if_large(content_resized)
 			style_resized   = self.__resize_if_large(style_resized)
 
-			await asyncio.sleep(0.2)
+			await asyncio.sleep(0.01)
 
 			content = self.__transforms(np.array(content_resized)).repeat(1, 1, 1, 1)
 			style   = self.__transforms(np.array(style_resized)).repeat(1, 1, 1, 1)
 
 			with torch.no_grad():
-				await asyncio.sleep(0.2)
+				await asyncio.sleep(0.01)
 				features_c = self.__vgg19(content)
 
-				await asyncio.sleep(0.2)
+				await asyncio.sleep(0.01)
 				features_s = self.__vgg19(style)
 
-				await asyncio.sleep(0.2)
+				await asyncio.sleep(0.01)
 				features_n =  await self.__style_swap(features_c, features_s[0])
 
-				await asyncio.sleep(0.2)
+				await asyncio.sleep(0.01)
 				result_t = self.__denorm(self.__inv_net(features_n)[0])
 
-			await asyncio.sleep(0.2)
+			await asyncio.sleep(0.01)
 			result_np = np.rollaxis(result_t.numpy(), 0, 3)
 
-			await asyncio.sleep(0.2)
+			await asyncio.sleep(0.01)
 			result_np = self.__correct_gamma(result_np, np.array(style_img) / 255)
 			result_np = np.clip(result_np, 0, 1)
 
-			await asyncio.sleep(0.2)
+			await asyncio.sleep(0.01)
 			result = Image.fromarray(np.uint8(result_np * 255))
 
 			Wc, Hc = content_img.size
 			if Hc < self.__MIN_IMG_SIZE or Wc < self.__MIN_IMG_SIZE:
 				result = result.resize((Wc, Hc))
 
-			await asyncio.sleep(0.2)
+			await asyncio.sleep(0.01)
 
 			return self.__save_image(result)
 
@@ -124,11 +124,11 @@ class Model():
 	    	] for layer in features_s.detach().numpy()
 		])).moveaxis(1, 0)
 
-		await asyncio.sleep(0.2)
+		await asyncio.sleep(0.01)
 
 		patches_s_norm = F.normalize(patches_s, dim=0)
 
-		await asyncio.sleep(0.2)
+		await asyncio.sleep(0.01)
 
 		correlations = await self.__async_conv2d(features_c, patches_s_norm)
 		del patches_s_norm
@@ -136,12 +136,12 @@ class Model():
 		phi = torch.argmax(correlations, dim=1)
 		del correlations
 
-		await asyncio.sleep(0.2)
+		await asyncio.sleep(0.01)
 
 		matches = torch.moveaxis(F.one_hot(phi, num_classes=len(patches_s)), 3, 1).type(torch.float)
 		del phi
 
-		await asyncio.sleep(0.2)
+		await asyncio.sleep(0.01)
 
 		result = await self.__async_transposed_conv2d(matches, patches_s, stride=1)
 
@@ -162,7 +162,7 @@ class Model():
 			filter_b = filter[b: b + self.__GROUP_CONV2D_SIZE]
 			results.append(F.conv2d(x, filter_b, stride=stride, padding=padding))
 
-			await asyncio.sleep(0.2)
+			await asyncio.sleep(0.01)
 
 		return torch.cat(results, dim=1)
 
@@ -173,7 +173,7 @@ class Model():
 			x_b = x[:, b: b + self.__GROUP_CONV2D_SIZE]
 			result += F.conv_transpose2d(x_b, filter_b, stride=stride, padding=padding)
 
-			await asyncio.sleep(0.2)
+			await asyncio.sleep(0.01)
 
 		return result
 

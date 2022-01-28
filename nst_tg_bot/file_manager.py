@@ -72,11 +72,15 @@ class FileManager():
 		try:
 			connection = sqlite3.connect(self.__path_to_db)
 
+			await asyncio.sleep(0.01)
+
 			if not self.__is_loaded(file_id, connection):
 				local_path = await self.__download_file(file)
+				await asyncio.sleep(0.01)
 				self.__create_entry(file_id, local_path, connection)
 			else:
 				local_path = self.__find_in_cache(file_id, connection)
+				await asyncio.sleep(0.01)
 				self.__protect_file(local_path, connection)
 
 			connection.close()

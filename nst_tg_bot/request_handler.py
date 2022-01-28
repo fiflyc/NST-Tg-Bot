@@ -81,17 +81,23 @@ class RequestHandler():
 	async def set_input(self, in_type: InputType, file: File, chat_id: int):
 		file_path = await self.__file_manager.get_local_path(file)
 
+		await asyncio.sleep(0.01)
+
 		try:
 			connection = sqlite3.connect(self.__path_to_db)
 
 			if self.__is_new_query(chat_id, connection):
 				self.__create_entry(chat_id, connection)
+
+			await asyncio.sleep(0.01)
+
 			if in_type is InputType.CONTENT:
 				content_path, _ = self.__get_input(chat_id, connection)
 				if content_path is not None:
 					self.__file_manager.release_file(content_path)
 
 				self.__set_content(chat_id, file_path, connection)
+
 			if in_type is InputType.STYLE:
 				_, style_path = self.__get_input(chat_id, connection)
 				if style_path is not None:
@@ -152,12 +158,16 @@ class RequestHandler():
 
 			content_path, style_path = self.__get_input(chat_id, connection)
 
+			await asyncio.sleep(0.01)
+
 			if content_path is None or style_path is None:
 				result = None
 			else:
 				cursor = connection.cursor()
 				cursor.execute(Queries.DELETE % chat_id)
 				connection.commit()
+
+				await asyncio.sleep(0.01)
 
 				result = await self.__model.transfer_style(content_path, style_path)
 				
