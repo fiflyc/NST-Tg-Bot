@@ -28,9 +28,11 @@ class Model():
 		self.__MIN_IMG_SIZE = 228
 		self.__MAX_IMG_SIZE = 512
 
+		self.__GROUP_CONV2D_SIZE = 500
+
 	async def transfer_style(self, content_path, style_path):
 		with Image.open(content_path) as content_img, \
-			Image.open(style_path) as style_img:
+		     Image.open(style_path) as style_img:
 
 			await asyncio.sleep(0.2)
 			content_resized = self.__resize_if_small(content_img)
@@ -128,10 +130,8 @@ class Model():
 
 		await asyncio.sleep(0.2)
 
-		correlations = F.conv2d(features_c, patches_s_norm)
+		correlations = await self.__async_conv2d(features_c, patches_s_norm)
 		del patches_s_norm
-
-		await asyncio.sleep(0.2)
 
 		phi = torch.argmax(correlations, dim=1)
 		del correlations
@@ -143,9 +143,7 @@ class Model():
 
 		await asyncio.sleep(0.2)
 
-		result = F.conv_transpose2d(matches, patches_s, stride=1)
-
-		await asyncio.sleep(0.2)
+		result = await self.__async_transposed_conv2d(matches, patches_s, stride=1)
 
 		del matches
 		del patches_s
@@ -158,6 +156,27 @@ class Model():
 
 		return result / overlap
 
+	async def __async_conv2d(self, x, filter, padding=0, stride=1):
+		results = []
+		for b in range(0, len(filter), self.__GROUP_CONV2D_SIZE):
+			filter_b = filter[b: b + self.__GROUP_CONV2D_SIZE]
+			results.append(F.conv2d(x, filter_b, stride=stride, padding=padding))
+
+			await asyncio.sleep(0.2)
+
+		return torch.cat(results, dim=1)
+
+	async def __async_transposed_conv2d(self, x, filter, padding=0, stride=1):
+		result = 0
+		for b in range(0, len(filter), self.__GROUP_CONV2D_SIZE):
+			filter_b = filter[b: b + self.__GROUP_CONV2D_SIZE]
+			x_b = x[:, b: b + self.__GROUP_CONV2D_SIZE]
+			result += F.conv_transpose2d(x_b, filter_b, stride=stride, padding=padding)
+
+			await asyncio.sleep(0.2)
+
+		return result
+
 	def __denorm(self, x):
 		return torch.clamp(x * self.__img_std + self.__img_mean, 0, 1)
 
@@ -168,7 +187,7 @@ class Model():
 		std_i  =  np.std(img)
 		mean_i = np.mean(img)
 
-		return (img - mean_i) / std_i #* std_t + mean_t
+		return (img - mean_i) / std_i * std_t + mean_t
 
 	def __save_image(self, img):
 		file = tempfile.NamedTemporaryFile(suffix='.png')
