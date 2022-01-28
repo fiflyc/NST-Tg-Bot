@@ -45,19 +45,38 @@ class RequestHandler():
 			try:
 				connection = sqlite3.connect(self.__path_to_db)
 
-				cursor = connection.cursor()
-				cursor.execute(Queries.DELETE_MARKED)
-				connection.commit()
+				files_to_release = self.__get_marked(connection)
 
-				cursor = connection.cursor()
-				cursor.execute(Queries.MARK)
-				connection.commit()
+				for file1_path, file2_path in files_to_release:
+					if file1_path is not None:
+						self.__file_manager.release_file(file1_path)
+					if file2_path is not None:
+						self.__file_manager.release_file(file2_path)
+
+				self.__delete_marked(connection)
+				self.__mark(connection)
 
 				connection.close()
 			except DBError as e:
 				print(f"DB error occured: {e}")
 
 			await asyncio.sleep(self.__waiting_time)
+
+	def __get_marked(self, connection):
+		cursor = connection.cursor()
+		cursor.execute(Queries.GET_MARKED)
+		
+		return cursor.fetchall()
+
+	def __delete_marked(self, connection):
+		cursor = connection.cursor()
+		cursor.execute(Queries.DELETE_MARKED)
+		connection.commit()
+
+	def __mark(self, connection):
+		cursor = connection.cursor()
+		cursor.execute(Queries.MARK)
+		connection.commit()
 
 	async def set_input(self, in_type: InputType, file: File, chat_id: int):
 		file_path = await self.__file_manager.get_local_path(file)
