@@ -6,7 +6,7 @@ import nst_tg_bot.config as cfg
 def extract_args():
 	parser = argparse.ArgumentParser("FiFlyC's NST Telegram Bot")
 	parser.add_argument('--api_token', '-t', type=str,
-	                    help="File with API token from @BotFather.")
+	                    help="API token from @BotFather.")
 	parser.add_argument('--downloads_path', '-d', type=str, default="./saved",
 	                    help="Path for Telegram's downloads.")
 	parser.add_argument('--db_path', '-b', type=str, default="./db",
@@ -20,18 +20,14 @@ def extract_args():
 	args = parser.parse_args()
 
 	if args.api_token is None:
-		raise ValueError("API token is necessary for launching the bot. Use --api_token [FILE]")
-	if not os.path.exists(args.api_token):
-		raise IOError("File \"" + args.api_token + "\" not found.")
+		raise ValueError("API token is necessary for launching the bot. Use --api_token [TOKEN]")
 	if args.clearing_time < 0:
 		raise ValueError("Clearing cache time should be greater than 0.")
 	if args.waiting_time < 0:
 		raise ValueError("Waiting user's responce time should be greater than 0.")
-	
-	with open(args.api_token, "r") as token_file:
-		args.api_token = token_file.read()[:-1]
 
 	return args
+
 
 def update_config(args):
     if not os.path.exists(args.downloads_path):

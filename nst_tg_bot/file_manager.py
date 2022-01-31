@@ -7,11 +7,22 @@ from sqlite3 import Error as DBError
 
 
 class FileManager():
+	"""
+	Class for managing telegram files.
+	Downloads file from query if itsn't exists locally. Uses MySQL DB for tracking uploads.
+	"""
 
 	def __init__(self, bot: Bot,
 		         cache_dir: str,
 		         clearing_time:int,
 		         path_to_db: str):
+		"""
+		:param bot: aiogram.Bot object. The FileManager uses it for downloading files by file_id.
+		:param cache_dir: path to dir for downloads.
+		:param clearing_time: downloads folder clearing time in seconds.
+		:param path_to_db: path to folder, where MySQL DB file will be stored.
+		"""
+
 		self.__bot = bot
 		self.__path_to_db = path_to_db + '/files.sqlite'
 		self.__cache_dir = cache_dir
@@ -32,6 +43,10 @@ class FileManager():
 		self.__clearing_time = clearing_time
 
 	async def clear_cache_task(self):
+		"""
+		Coroutine that has an infinite cycle with deleting downloaded files and sleeping for a specified time.
+		"""
+
 		await asyncio.sleep(self.__clearing_time)
 
 		while True:
@@ -65,8 +80,14 @@ class FileManager():
 		connection.commit()		
 
 	async def get_local_path(self, file: File):
+		"""
+		Rerurns local path to a file. Downloads the file if it doesn't exist.
+		After using returned file call :func:`~nst_tg_bot.file_manager.FileManager.release_file` to make it seen for the clearing cache coroutine.
+		:param file: aiogram File object
+		"""
+
 		local_path = None
-		# unique single file code:
+		# unique single file id:
 		file_id = file.file_unique_id
 
 		try:
@@ -119,6 +140,11 @@ class FileManager():
 		connection.commit()	
 
 	def release_file(self, local_path: str):
+		"""
+		Makes file seen for clearing cache coroutine. If other request already uses this file then nothing changes.
+		:param local_path: local path to the file
+		"""
+
 		try:
 			connection = sqlite3.connect(self.__path_to_db)
 

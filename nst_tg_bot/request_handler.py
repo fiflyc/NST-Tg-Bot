@@ -14,11 +14,21 @@ class InputType(Enum):
 
 
 class RequestHandler():
+	"""
+	Class for managing queries from bot.
+	Uses MySQL DB for tracking current requests.
+	"""
 
 	def __init__(self,
 		         file_manager: FileManager,
 		         path_to_db: str,
 		         waiting_time: int):
+		"""
+		:param file_manager: nst_tg_bot.file_manager.FileManager object.
+		:param waiting_time: maximum time for user to send the second file. After that time handler may forget about already sent file.
+		:param path_to_db: path to folder, where MySQL DB file will be stored.
+		"""
+
 		self.__file_manager = file_manager
 		self.__model = Model()
 		self.__path_to_db = path_to_db + "/queries.sqlite"
@@ -39,6 +49,10 @@ class RequestHandler():
 		self.__waiting_time = waiting_time
 
 	async def remove_old_task(self):
+		"""
+		Coroutine that has an infinite cycle with forgetting marked queries, marking unmarked ones and sleeping for a specified time.
+		"""
+
 		await asyncio.sleep(self.__waiting_time)
 
 		while True:
@@ -79,6 +93,13 @@ class RequestHandler():
 		connection.commit()
 
 	async def set_input(self, in_type: InputType, file: File, chat_id: int):
+		"""
+		Attaches input file to the query.
+		:param in_type: type of the file. Check nst_tg_bot.request_handler.InputType.
+		:param file: the aiogram file object.
+		:param chat_id: id of the telegram chat with that query. 
+		"""
+
 		file_path = await self.__file_manager.get_local_path(file)
 
 		await asyncio.sleep(0.01)
@@ -136,6 +157,11 @@ class RequestHandler():
 		connection.commit()
 
 	def ready_for_transfer(self, chat_id):
+		"""
+		:param chat_id: id of the chat with a query.
+		:returns: True if all necessary input files are sent.
+		"""
+
 		try:
 			connection = sqlite3.connect(self.__path_to_db)
 
@@ -153,6 +179,11 @@ class RequestHandler():
 		return result
 
 	async def execute_query(self, chat_id: int):
+		"""
+		:param chat_id: id of the chat with a query.
+		:returns: None if not all the inputs are sent, a tempfile with the result otherwise. This tempfile will be automatically deleted as soon as you close it.
+		"""
+
 		try:
 			connection = sqlite3.connect(self.__path_to_db)
 

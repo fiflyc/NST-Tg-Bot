@@ -11,6 +11,9 @@ from nst_tg_bot.model.inv_net import InverseNet
 
 
 class Model():
+	"""
+	Class that implements style transfer algorithm.
+	"""
 
 	def __init__(self):
 		self.__vgg19 = TruncVGG19(11)
@@ -26,11 +29,18 @@ class Model():
 		                 std=[0.229, 0.224, 0.225])
 		])
 		self.__MIN_IMG_SIZE = 228
-		self.__MAX_IMG_SIZE = 512
+		self.__MAX_IMG_SIZE = 450
 
 		self.__GROUP_CONV2D_SIZE = 500
 
 	async def transfer_style(self, content_path, style_path):
+		"""
+		Transfers style from an artwork to a photo.
+		:param content_path: local path to the photo image.
+		:param style_path: local path to the artwork image.
+		:returns: a tempfile with the result. This tempfile will be automatically deleted as soon as you close it.
+		"""
+
 		with Image.open(content_path) as content_img, \
 		     Image.open(style_path) as style_img:
 

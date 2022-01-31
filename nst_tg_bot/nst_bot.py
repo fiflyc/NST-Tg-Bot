@@ -1,3 +1,4 @@
+import os
 import asyncio
 from aiogram import Bot, Dispatcher, executor
 from aiogram.types import Message
@@ -26,20 +27,24 @@ handler = RequestHandler(fmanager,
 async def on_start_cmd(message: Message):
 	await message.reply(text.START_MESSAGE)
 
+
 @dp.message_handler(filters.Command(['help'], ignore_caption=False),
                     content_types=mctp.TEXT)
 async def on_help_cmd(message: Message):
 	await message.reply(text.HELP_MESSAGE, parse_mode='Markdown')
+
 
 @dp.message_handler(filters.Command(['info'], ignore_caption=False),
                     content_types=mctp.TEXT)
 async def on_info_cmd(message: Message):
 	await message.reply(text.INFO_MESSAGE)
 
+
 @dp.message_handler(filters.Command(['links'], ignore_caption=False),
                     content_types=mctp.TEXT)
 async def on_links_cmd(message: Message):
 	await message.reply(text.LINKS_MESSAGE, parse_mode='Markdown', disable_web_page_preview=True)
+
 
 async def save_content_and_execute(file: File, message: Message):
 	chat_id = message.chat['id']
@@ -55,11 +60,13 @@ async def save_content_and_execute(file: File, message: Message):
 		                     reply_to_message_id=message.message_id)
 		result.close()
 
+
 @dp.message_handler(filters.Command(['content'], ignore_caption=False),
                     content_types=mctp.PHOTO)
 async def on_content_image(message: Message):
 	file = await bot.get_file(message.photo[-1]['file_id'])
 	await save_content_and_execute(file, message)
+
 
 @dp.message_handler(filters.Command(['content'], ignore_caption=False),
                     content_types=mctp.DOCUMENT)
@@ -69,6 +76,7 @@ async def on_content_file(message: Message):
 	else:
 		file = await bot.get_file(message.document['file_id'])
 		await save_content_and_execute(file, message)
+
 
 @dp.message_handler(filters.Command(['content']),
                     content_types=mctp.TEXT)
@@ -88,6 +96,7 @@ async def on_forwarded_content(message: Message):
 		file = await bot.get_file(message.reply_to_message.photo[-1]['file_id'])
 		await save_content_and_execute(file, message)
 
+
 async def save_style_and_execute(file: File, message: Message):
 	chat_id = message.chat['id']
 	await handler.set_input(InputType.STYLE, file, chat_id)
@@ -102,11 +111,13 @@ async def save_style_and_execute(file: File, message: Message):
 		                     reply_to_message_id=message.message_id)
 		result.close()
 
+
 @dp.message_handler(filters.Command(['style'], ignore_caption=False),
                     content_types=mctp.PHOTO)
 async def on_style_image(message: Message):
 	file = await bot.get_file(message.photo[-1]['file_id'])
 	await save_style_and_execute(file, message)
+
 
 @dp.message_handler(filters.Command(['style'], ignore_caption=False),
                     content_types=mctp.DOCUMENT)
@@ -116,6 +127,7 @@ async def on_style_file(message: Message):
 	else:
 		file = await bot.get_file(message.document['file_id'])
 		await save_style_and_execute(file, message)
+
 
 @dp.message_handler(filters.Command(['style']),
                     content_types=mctp.TEXT)
@@ -134,6 +146,7 @@ async def on_forwarded_style_image(message: Message):
 	else:
 		file = await bot.get_file(message.reply_to_message.photo[-1]['file_id'])
 		await save_style_and_execute(file, message)
+
 
 async def on_startup(arg):
 	asyncio.create_task(fmanager.clear_cache_task())
