@@ -1,4 +1,4 @@
-![img](https://cdn4.telesco.pe/file/ALWGlLDtIyJ1cwkfaCZCNyt2m3B0ngxgBgKugowxBgn2O9JdKJudsWV9ZisELCcxqsq7vKWZ-HwFz3VD9slH5YH61WlRJNEkUMsGzMCDMEGeEuH5OQ8m25xyeIZSAHxW8SRNDXAkt-pek8tTP8fPZltatY1K1G6smm-4zeUJl0aemzpZyOeXpwoLtTfI3OnSBCQzwXxYxL222n5Rp6UNKIFEbrJi5OTqnUy6SOewL4wJAk5JPPlrLFxTVAFR2LNmGI6n_VTZI_P12ukcVrXZ2q5y7oqwwmjfMhwoBTtRcAIotJUhDWtThl045Ji6AOp3jUaoa09VsoAB1CPWdTKYgw.jpg)
+![img](https://user-images.githubusercontent.com/31612763/152140598-1f03ca21-1fbd-4316-9b6e-68b85df04b92.png)
 
 # NST-Tg-Bot
 A Telegram bot that performs fast patch-based style transfer [algorithm](https://arxiv.org/pdf/1612.04337.pdf) by Chen and Schmidt.
