@@ -20,3 +20,7 @@ Write `/content` in an image description to change it's style. You can also type
 Do the same thing with `/style` passing an artwotk which style you want to use.
 
 After you send all the inputs, bot will transfer style. Average waiting time: 40 seconds.
+
+## [RU] Отчет о проделанной работе
+
+Данный бот писался в качестве зачетного проекта к [Deep Learning School](https://www.dlschool.org/). Отчет о проделанной работе, интересующий проверяющего, находится в файле **report.pdf**
