@@ -1,6 +1,9 @@
 ![img](https://user-images.githubusercontent.com/31612763/152140598-1f03ca21-1fbd-4316-9b6e-68b85df04b92.png)
 
 # NST-Tg-Bot
+
+**Using SQL queries in asynchronous code🙈**
+
 A Telegram bot that performs fast patch-based style transfer [algorithm](https://arxiv.org/pdf/1612.04337.pdf) by Chen and Schmidt.
 You can find it [here](https://t.me/fiflyc_nst_bot) but it's not working cause it's not hosted. Free servers have too low memory limitation for this algorithm.
 
